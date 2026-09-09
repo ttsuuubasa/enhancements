@@ -755,7 +755,6 @@ We expect no non-infra related flakes in the last month as a GA graduation crite
 
 #### GA
 
-- 1 example of real-world usage
 - Allowing time for feedback
   - To collect feedback, we consulted with the developers of each DRA driver.
   We believe we have conducted as much review and feedback collection as
@@ -819,6 +818,30 @@ We expect no non-infra related flakes in the last month as a GA graduation crite
       driver for FPGAs (only a device plugin). Therefore, while we cannot
       collect concrete feedback, we assume that no API changes will be
       required.
+
+- 1 example of real-world usage
+  - **Real-World Use Case: Local LLM Inference System**
+    - The system uses **vLLM** as its inference engine.
+      When requests begin to wait, the `num_requests_waiting` metric provided by vLLM
+      increases, and KEDA uses this metric through Prometheus as a scaling trigger to
+      scale inference Pods through HPA.
+    - Previously, when all GPUs in the cluster were in use, scaled inference Pods remained
+      Pending because no GPU could be allocated.
+    - Image Configurator and DRA's
+      [Prioritized List](https://github.com/kubernetes/enhancements/blob/master/keps/sig-scheduling/4816-dra-prioritized-list/README.md)
+      were introduced to prioritize GPUs and fall back to CPUs when GPUs are exhausted.
+      A [cpu-dra-driver](https://github.com/kubernetes-sigs/dra-driver-cpu)
+      was also introduced to make CPU resources available through DRA.
+    - Users request a virtual device with
+      `BindingConditions` in addition to the devices specified in the Prioritized List.
+      This temporarily keeps the vLLM workload Pod Pending while Image Configurator
+      checks the allocated device and rewrites the Pod's container image to either the
+      GPU or CPU version based on the allocation result. Once the rewrite is complete,
+      Image Configurator marks the binding condition as satisfied, allowing the scheduler
+      to bind the Pod.
+    - This enables accelerator fungibility: even when all GPUs are in use, inference can
+      continue on CPUs without waiting for a GPU to become available, improving the total
+      number of inference requests that the system can process.
 
 #### Deprecation
 <!--
@@ -1348,7 +1371,7 @@ Major milestones might include:
 - 2025-06: Improve some API descriptions, and clarify that "fail and reschedule" is an anti-pattern.
 - 2025-08: Updated KEP for alpha in v1.35.
 - 2026-02: Updated KEP for promotion to beta.
-- 2026-04: Updated KEP for graduates to stable.
+- 2026-09: Updated KEP for graduates to stable.
 
 ## Drawbacks
 
