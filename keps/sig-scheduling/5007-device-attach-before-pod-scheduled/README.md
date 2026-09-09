@@ -773,6 +773,21 @@ We expect no non-infra related flakes in the last month as a GA graduation crite
       [BindingPermanentFailureConditions](https://github.com/gke-labs/dra-drivers/pull/8#discussion_r3424337609)
       to BindingConditions, but after the discussion,
       we decided not to implement it.
+    - **Real-World Use Case: Local LLM Inference System**
+      - The system uses **vLLM** as its inference engine.
+        When requests begin to wait, the `num_requests_waiting` metric provided by vLLM
+        increases, and KEDA uses this metric through Prometheus as a scaling trigger to
+        scale inference Pods through HPA.
+      - Previously, when all GPUs in the cluster were in use, scaled inference Pods remained
+        Pending because no GPU could be allocated.
+      - Image Configurator and DRA's
+        [Prioritized List](https://github.com/kubernetes/enhancements/blob/master/keps/sig-scheduling/4816-dra-prioritized-list/README.md)
+        were introduced to prioritize GPUs and fall back to CPUs when GPUs are exhausted.
+        A [cpu-dra-driver](https://github.com/kubernetes-sigs/dra-driver-cpu)
+        was also introduced to make CPU resources available through DRA.
+      - As a result, even when all GPUs are in use, inference can continue on CPUs without
+        waiting for a GPU to become available, improving the total number of inference
+        requests that the system can process.
   - CoHDI composable-dra-driver
     - Already covered as the primary real-world use case above (see the
       Beta-graduation feedback). BindingConditions are used to wait for
